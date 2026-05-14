@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemayni — Remove Watermark</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <div class="logo">Gemayni <span>remove watermark</span></div>
+</header>
+
+<main>
+    <div class="hero">
+        <h1>Xóa watermark<br><em>Gemini</em> khỏi ảnh</h1>
+    </div>
+
+    <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp">
+        <p class="upload-label">Kéo thả ảnh vào đây</p>
+        <p class="upload-hint">JPG, PNG, WebP</p>
+        <span class="upload-cta">Chọn file</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <div id="previewSection">
+        <div class="grid-2">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Ảnh gốc</span>
+                    <span class="panel-meta" id="originalInfo"></span>
+                </div>
+                <div class="panel-body"><img id="originalImage" alt="Original"></div>
+            </div>
+            <div class="panel" id="resultPanel" style="display:none;">
+                <div class="panel-header">
+                    <span class="panel-title">Sau khi xử lý</span>
+                    <span class="panel-meta" id="processedInfo"></span>
+                </div>
+                <div class="panel-body"><img id="processedImage" alt="Result"></div>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary" id="downloadBtn" style="display:none;">Tải xuống</button>
+            <button class="btn btn-ghost" id="resetBtn">Tải ảnh khác</button>
+        </div>
+        <p id="statusMsg"></p>
+    </div>
+</main>
+
+<footer>
+    <div class="footer-inner">
+        <p class="footer-brand">Gemayni — 2026</p>
+        <div class="credits">
+            <div class="credit-row founder">
+                <span class="credit-name">VanKhoa <span class="credit-tag">KJI</span></span>
+                <span class="credit-role">Founder &amp; CEO</span>
+            </div>
+            <div class="credit-row">
+                <span class="credit-name">CaoLong</span>
+                <span class="credit-role">Developer</span>
+            </div>
+            <div class="credit-row">
+                <span class="credit-name">VanKhoa</span>
+                <span class="credit-role">UX/UI Designer</span>
+            </div>
+            <div class="credit-row">
+                <span class="credit-name">VanKhoa</span>
+                <span class="credit-role">Developer 2</span>
+            </div>
+            <div class="credit-row">
+                <span class="credit-name">DuyViet</span>
+                <span class="credit-role">Algorithm Engineer</span>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<canvas id="canvas"></canvas>
+
+<script src="script.js"></script>
+</body>
+</html>
