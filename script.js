@@ -22,161 +22,193 @@
         vpHint: _d.getElementById('progressHint'),
     };
 
-    const _ctx = _nodes.cv.getContext('2d', { willReadFrequently: true });
+    const _ctx    = _nodes.cv.getContext('2d', { willReadFrequently: true });
     const _assets = { 48: null, 96: null };
-    let _cache = { url: null, name: 'result', isVideo: false };
+    let _cache    = { url: null, name: 'result', isVideo: false, ext: 'webm' };
 
-    // ── Khởi tạo watermark mask assets ──────────────────────────────────────
-    const _init = async () => {
-        const base = 'https://raw.githubusercontent.com/journey-ad/gemini-watermark-remover/main/src/assets/';
-        try {
-            await Promise.all([
-                _fetchMap(base + 'bg_48.png', 48),
-                _fetchMap(base + 'bg_96.png', 96)
-            ]);
-        } catch (e) {
-            console.error('Asset init failed:', e);
+    // =========================================================================
+    // Worker Pool — xử lý pixel đa luồng, không block UI
+    // Code worker nhúng thẳng vào Blob URL → không cần file riêng
+    // =========================================================================
+    const WORKER_CODE = `
+self.onmessage = function({ data: { buf, width, height, map48, map96 } }) {
+    const isBig = width > 1024 && height > 1024;
+    const s      = isBig ? 96 : 48;
+    const map    = isBig ? map96 : map48;
+    const offset = isBig ? 64 : 32;
+    const posX   = width  - s - offset;
+    const posY   = height - s - offset;
+    const d      = new Uint8ClampedArray(buf);
+    for (let row = 0; row < s; row++) {
+        for (let col = 0; col < s; col++) {
+            const a = Math.min(map[row * s + col], 0.999);
+            if (a < 0.01) continue;
+            const px = posX + col, py = posY + row;
+            if (px < 0 || px >= width || py < 0 || py >= height) continue;
+            const idx = (py * width + px) * 4;
+            const den = 1 - a;
+            if (den < 0.001) continue;
+            for (let k = 0; k < 3; k++) {
+                d[idx+k] = Math.max(0, Math.min(255, Math.round((d[idx+k] - a * 255) / den)));
+            }
         }
-    };
+    }
+    self.postMessage(d.buffer, [d.buffer]);
+};
+`;
 
-    async function _fetchMap(u, s) {
-        const r = await fetch(u);
-        if (!r.ok) return;
-        const b = await r.blob();
-        const img = await _loadFile(new File([b], 'map', { type: 'image/png' }));
-        const tc = _d.createElement('canvas');
-        tc.width = tc.height = s;
-        const tx = tc.getContext('2d');
-        tx.drawImage(img, 0, 0);
-        const d = tx.getImageData(0, 0, s, s).data;
-        const m = new Float32Array(s * s);
-        for (let i = 0; i < m.length; i++) {
-            m[i] = Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) / 255;
+    const CONCURRENCY = Math.max(2, Math.min(navigator.hardwareConcurrency || 4, 8));
+    let _workers = [];
+    let _freeIdx = [];
+    let _waitQ   = []; // { buf, width, height, resolve }
+
+    function _initWorkers() {
+        const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
+        const wurl = URL.createObjectURL(blob);
+        for (let i = 0; i < CONCURRENCY; i++) {
+            const w = new Worker(wurl);
+            w.onmessage = ({ data: outBuf }) => {
+                // Lấy job tiếp từ queue hoặc đánh dấu rảnh
+                const { resolve } = w._job;
+                resolve(new Uint8ClampedArray(outBuf));
+                if (_waitQ.length > 0) {
+                    _runJob(i, _waitQ.shift());
+                } else {
+                    _freeIdx.push(i);
+                }
+            };
+            _workers.push(w);
+            _freeIdx.push(i);
         }
-        _assets[s] = m;
+        URL.revokeObjectURL(wurl);
     }
 
-    function _loadFile(f) {
-        return new Promise((res, rej) => {
-            const r = new FileReader();
-            r.onload = e => {
-                const i = new Image();
-                i.decoding = 'sync';
-                i.onload = () => res(i);
-                i.onerror = rej;
-                i.src = e.target.result;
-            };
-            r.readAsDataURL(f);
+    function _runJob(idx, job) {
+        const w = _workers[idx];
+        w._job  = job;
+        w.postMessage(
+            { buf: job.buf, width: job.width, height: job.height,
+              map48: _assets[48], map96: _assets[96] },
+            [job.buf]        // Transferable — zero-copy
+        );
+    }
+
+    // Gửi buffer tới worker rảnh, trả Promise<Uint8ClampedArray>
+    function _workerProcess(buf, width, height) {
+        return new Promise(resolve => {
+            const job = { buf, width, height, resolve };
+            if (_freeIdx.length > 0) {
+                _runJob(_freeIdx.pop(), job);
+            } else {
+                _waitQ.push(job);
+            }
         });
     }
 
+    // =========================================================================
+    // Asset init
+    // =========================================================================
+    const _init = async () => {
+        _initWorkers();
+        const base = 'https://raw.githubusercontent.com/journey-ad/gemini-watermark-remover/main/src/assets/';
+        await Promise.all([_fetchMap(base + 'bg_48.png', 48), _fetchMap(base + 'bg_96.png', 96)])
+              .catch(e => console.error('Asset init:', e));
+    };
+
+    async function _fetchMap(u, s) {
+        const r   = await fetch(u);
+        if (!r.ok) return;
+        const img = await _loadHTMLImage(await r.blob());
+        const tc  = _d.createElement('canvas');
+        tc.width  = tc.height = s;
+        const tx  = tc.getContext('2d');
+        tx.drawImage(img, 0, 0);
+        const px  = tx.getImageData(0, 0, s, s).data;
+        const m   = new Float32Array(s * s);
+        for (let i = 0; i < m.length; i++)
+            m[i] = Math.max(px[i*4], px[i*4+1], px[i*4+2]) / 255;
+        _assets[s] = m;
+    }
+
+    function _loadHTMLImage(blobOrFile) {
+        return new Promise((res, rej) => {
+            const url = URL.createObjectURL(blobOrFile);
+            const img = new Image();
+            img.onload  = () => { URL.revokeObjectURL(url); res(img); };
+            img.onerror = rej;
+            img.src     = url;
+        });
+    }
+
+    function _loadFileAsImage(f) { return _loadHTMLImage(f); }
+
     function _state(m, t) {
         _nodes.msg.textContent = m;
-        _nodes.msg.className = t || '';
+        _nodes.msg.className   = t || '';
     }
 
-    // ── Thuật toán xóa watermark (giữ nguyên) ────────────────────────────────
-    // Áp dụng lên ImageData đã được vẽ trên canvas có kích thước w×h
-    function _applyAlgo(w, h) {
-        const isBig = w > 1024 && h > 1024;
-        const s      = isBig ? 96 : 48;
-        const offset = isBig ? 64 : 32;
-        const posX   = w - s - offset;
-        const posY   = h - s - offset;
-        const map    = _assets[s];
-
-        if (!map) throw new Error('Hệ thống đang khởi tạo, vui lòng thử lại.');
-
-        const id = _ctx.getImageData(0, 0, w, h);
-        const d  = id.data;
-        let ops  = 0;
-
-        for (let row = 0; row < s; row++) {
-            for (let col = 0; col < s; col++) {
-                const a = Math.min(map[row * s + col], 0.999);
-                if (a < 0.01) continue;
-                const px = posX + col, py = posY + row;
-                if (px < 0 || px >= w || py < 0 || py >= h) continue;
-                const i   = (py * w + px) * 4;
-                const den = 1 - a;
-                if (den < 0.001) continue;
-                for (let k = 0; k < 3; k++) {
-                    d[i + k] = Math.max(0, Math.min(255, Math.round((d[i + k] - a * 255) / den)));
-                }
-                ops++;
-            }
-        }
-        _ctx.putImageData(id, 0, 0);
-        return ops;
-    }
-
-    // ── Xử lý ảnh (giữ nguyên logic gốc) ────────────────────────────────────
-    async function _runImage(img) {
-        _nodes.cv.width  = img.width;
-        _nodes.cv.height = img.height;
-        _ctx.imageSmoothingEnabled = false;
-        _ctx.drawImage(img, 0, 0);
-        const ops = _applyAlgo(img.width, img.height);
-        return { ops };
-    }
-
+    // =========================================================================
+    // Xử lý ảnh — single call, main thread đủ nhanh
+    // =========================================================================
     async function _handleImage(f) {
         _cache.name    = f.name.replace(/\.[^.]+$/, '');
         _cache.isVideo = false;
-        _state('Đang xử lý...');
-
         _showImageUI();
-
+        _state('Đang xử lý...');
         try {
-            const img = await _loadFile(f);
+            const img = await _loadFileAsImage(f);
             _nodes.orig.src = img.src;
             _nodes.orig.style.display = 'block';
-            _nodes.oInfo.textContent = `${img.width} × ${img.height}`;
-
+            _nodes.oInfo.textContent  = `${img.width} × ${img.height}`;
             _nodes.view.style.display = 'block';
             _nodes.res.style.display  = 'none';
             _nodes.dl.style.display   = 'none';
 
-            const meta     = await _runImage(img);
-            _cache.url     = _nodes.cv.toDataURL('image/png');
+            _nodes.cv.width  = img.width;
+            _nodes.cv.height = img.height;
+            _ctx.imageSmoothingEnabled = false;
+            _ctx.drawImage(img, 0, 0);
+
+            const id  = _ctx.getImageData(0, 0, img.width, img.height);
+            const out = await _workerProcess(id.data.buffer.slice(0), img.width, img.height);
+            _ctx.putImageData(new ImageData(out, img.width, img.height), 0, 0);
+
+            _cache.url = _nodes.cv.toDataURL('image/png');
             _nodes.proc.src = _cache.url;
             _nodes.proc.style.display = 'block';
-            _nodes.pInfo.textContent  = `${img.width} × ${img.height} · ${meta.ops.toLocaleString()} px`;
+            _nodes.pInfo.textContent  = `${img.width} × ${img.height}`;
             _nodes.res.style.display  = 'block';
             _nodes.dl.style.display   = 'inline-block';
             _state('Hoàn tất!', 'ok');
+            if (window.trackAction) trackAction('remove_image', { file_type: f.type, file_size: f.size });
         } catch (e) {
             _state(e.message, 'err');
         }
     }
 
-    // ── Xử lý video ──────────────────────────────────────────────────────────
-    // Chiến lược: seek từng frame qua HTMLVideoElement → vẽ canvas → xóa wm → 
-    // capture stream → MediaRecorder → Blob → download
-    // Chất lượng: dùng bitrate cao nhất codec trình duyệt hỗ trợ (VP9 hoặc H.264)
+    // =========================================================================
+    // Xử lý video — realtime playback + requestVideoFrameCallback
+    // =========================================================================
+    // Chiến lược:
+    // 1. Phát video ở tốc độ thực (không seek từng frame → không giật)
+    // 2. requestVideoFrameCallback (RVFC) callback mỗi khi decoder giải mã xong 1 frame
+    // 3. Mỗi frame: drawImage → copy pixels → gửi worker (async, non-blocking)
+    // 4. Worker trả về → putImageData lên visible canvas → MediaRecorder capture
+    // 5. CONCURRENCY worker chạy song song: pipeline luôn đầy, không chờ nhau
+    // 6. Fallback RAFloop khi RVFC không được hỗ trợ
 
-    function _bestVideoMime() {
-        // Ưu tiên VP9 (chất lượng cao, webm), fallback H.264 mp4
-        const candidates = [
-            'video/webm;codecs=vp9',
-            'video/webm;codecs=vp8',
-            'video/mp4;codecs=avc1',
-            'video/webm',
-        ];
-        for (const c of candidates) {
-            if (MediaRecorder.isTypeSupported(c)) return c;
-        }
+    function _bestMime() {
+        for (const m of ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/mp4;codecs=avc1','video/webm'])
+            if (MediaRecorder.isTypeSupported(m)) return m;
         return 'video/webm';
     }
 
     async function _handleVideo(f) {
         _cache.name    = f.name.replace(/\.[^.]+$/, '');
         _cache.isVideo = true;
+        _showVideoUI();
         _state('Đang tải video...');
 
-        _showVideoUI();
-
-        // Tạo object URL cho video gốc
         const origUrl = URL.createObjectURL(f);
         _nodes.origV.src = origUrl;
         _nodes.origV.style.display = 'block';
@@ -185,80 +217,132 @@
         _nodes.dl.style.display    = 'none';
         _nodes.vpWrap.style.display = 'block';
 
-        // Đợi metadata video load
         await new Promise((res, rej) => {
             _nodes.origV.onloadedmetadata = res;
             _nodes.origV.onerror = rej;
         });
 
-        const vw       = _nodes.origV.videoWidth;
-        const vh       = _nodes.origV.videoHeight;
-        const duration = _nodes.origV.duration;
-        _nodes.oInfo.textContent = `${vw} × ${vh} · ${_fmtDur(duration)}`;
+        const vw  = _nodes.origV.videoWidth;
+        const vh  = _nodes.origV.videoHeight;
+        const dur = _nodes.origV.duration;
+        _nodes.oInfo.textContent = `${vw} × ${vh} · ${_fmtDur(dur)}`;
 
-        // Thiết lập canvas đúng kích thước video gốc
+        // OffscreenCanvas để readPixels không conflict main canvas
+        const offCanvas = (typeof OffscreenCanvas !== 'undefined')
+            ? new OffscreenCanvas(vw, vh)
+            : Object.assign(_d.createElement('canvas'), { width: vw, height: vh });
+        const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+        offCtx.imageSmoothingEnabled = false;
+
+        // Visible canvas → MediaRecorder
         _nodes.cv.width  = vw;
         _nodes.cv.height = vh;
         _ctx.imageSmoothingEnabled = false;
 
-        // Capture stream từ canvas với framerate cao nhất có thể
-        const FPS     = 30;
-        const stream  = _nodes.cv.captureStream(FPS);
+        const mime    = _bestMime();
+        const bScale  = (vw * vh) / (1920 * 1080);
+        const vbps    = Math.round(16_000_000 * Math.max(0.4, Math.min(bScale, 4)));
+        const capStream = _nodes.cv.captureStream(0); // manual frame push
 
-        // Nếu video có audio, thêm audio track vào stream
-        let audioCtx, audioSource, audioDest;
-        try {
-            audioCtx    = new AudioContext();
-            audioSource = audioCtx.createMediaElementSource(_nodes.origV);
-            audioDest   = audioCtx.createMediaStreamDestination();
-            audioSource.connect(audioDest);
-            audioDest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
-            // Cũng kết nối tới output mặc định để có thể nghe khi preview
-            audioSource.connect(audioCtx.destination);
-        } catch (_) {
-            // Video không có audio hoặc trình duyệt chặn → bỏ qua
-        }
-
-        const mime     = _bestVideoMime();
-        // Tính bitrate: ~12 Mbps cho 1080p, scale theo diện tích
-        const bitrateBase  = 12_000_000;
-        const scaleFactor  = (vw * vh) / (1920 * 1080);
-        const videoBitsPerSecond = Math.round(bitrateBase * Math.max(0.5, Math.min(scaleFactor, 4)));
-
-        const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond });
+        const recorder = new MediaRecorder(capStream, { mimeType: mime, videoBitsPerSecond: vbps });
         const chunks   = [];
         recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.start(200);
 
-        recorder.start(100); // flush mỗi 100ms để RAM không tràn
-
-        _nodes.origV.muted  = true;   // tắt tiếng phát lại gốc (audio được lấy qua AudioContext)
-        _nodes.origV.pause();
+        // Audio routing
+        let audioCtx;
+        try {
+            audioCtx = new AudioContext();
+            const src  = audioCtx.createMediaElementSource(_nodes.origV);
+            const dest = audioCtx.createMediaStreamDestination();
+            src.connect(dest);
+            dest.stream.getAudioTracks().forEach(t => capStream.addTrack(t));
+            // Không connect tới destination để tránh echo khi preview
+        } catch (_) {}
+        _nodes.origV.muted = true;
 
         _state('Đang xử lý video...');
         _setProgress(0);
 
-        // Seek + render từng frame
-        const FRAME_DUR = 1 / FPS;
-        let   t         = 0;
-        let   cancelled = false;
-
-        // Nếu user nhấn reset trong lúc xử lý → hủy
+        let cancelled = false;
         _nodes.rs._cancelVideo = () => { cancelled = true; };
 
-        while (t <= duration && !cancelled) {
-            await _seekTo(_nodes.origV, t);
-            _ctx.drawImage(_nodes.origV, 0, 0, vw, vh);
-            _applyAlgo(vw, vh);
-            // Không cần putImageData vì _applyAlgo đã put, chỉ cần
-            // đảm bảo canvas stream lấy frame mới nhất (đã tự động)
+        // Lấy videoTrack để requestFrame (báo captureStream có frame mới)
+        const vTrack = capStream.getVideoTracks()[0];
 
-            const pct = Math.min(t / duration, 1);
-            _setProgress(pct);
+        // ── Pipeline frame processing ────────────────────────────────────────
+        // Mỗi frame từ RVFC: copy pixel → worker async
+        // Khi worker done: putImageData + requestFrame → recorder nhận frame
+        // In-flight tracking: đảm bảo tất cả frame được xử lý trước khi stop
 
-            t += FRAME_DUR;
-            // Nhường event loop để trình duyệt không đóng băng
-            await _tick();
+        let inFlight   = 0;
+        let allQueued  = false;     // tất cả frame đã được gửi vào worker
+        let finishRes  = null;      // resolve Promise chính
+
+        function _onWorkerDone(processed) {
+            _ctx.putImageData(new ImageData(processed, vw, vh), 0, 0);
+            vTrack.requestFrame?.();
+            inFlight--;
+            if (allQueued && inFlight === 0 && finishRes) finishRes();
         }
+
+        const useRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+
+        const processPromise = new Promise(resolve => { finishRes = resolve; });
+
+        if (useRVFC) {
+            function onRVFC(_, meta) {
+                if (cancelled) { allQueued = true; if (inFlight === 0) finishRes(); return; }
+
+                _setProgress(meta.mediaTime / dur);
+
+                // Copy frame ngay trong callback (synchronous) trước khi decoder tiến
+                offCtx.drawImage(_nodes.origV, 0, 0, vw, vh);
+                const id  = offCtx.getImageData(0, 0, vw, vh);
+                // slice để có ArrayBuffer riêng (transferable)
+                const buf = id.data.buffer.slice(0);
+                inFlight++;
+                _workerProcess(buf, vw, vh).then(_onWorkerDone);
+
+                const done = meta.mediaTime >= dur - 0.08 || _nodes.origV.ended;
+                if (done) {
+                    allQueued = true;
+                    if (inFlight === 0) finishRes();
+                } else {
+                    _nodes.origV.requestVideoFrameCallback(onRVFC);
+                }
+            }
+            _nodes.origV.requestVideoFrameCallback(onRVFC);
+        } else {
+            // RAF fallback: kiểm tra currentTime thay đổi → xử lý
+            let lastT = -1;
+            function rafLoop() {
+                if (cancelled || _nodes.origV.ended || _nodes.origV.currentTime >= dur - 0.08) {
+                    allQueued = true;
+                    if (inFlight === 0) finishRes();
+                    return;
+                }
+                const t = _nodes.origV.currentTime;
+                _setProgress(t / dur);
+                if (t !== lastT) {
+                    lastT = t;
+                    offCtx.drawImage(_nodes.origV, 0, 0, vw, vh);
+                    const buf = offCtx.getImageData(0, 0, vw, vh).data.buffer.slice(0);
+                    inFlight++;
+                    _workerProcess(buf, vw, vh).then(_onWorkerDone);
+                }
+                requestAnimationFrame(rafLoop);
+            }
+            requestAnimationFrame(rafLoop);
+        }
+
+        // Bắt đầu phát (sau khi đăng ký callback)
+        _nodes.origV.currentTime = 0;
+        await _nodes.origV.play();
+
+        // Đợi pipeline hoàn thành
+        await processPromise;
+        _nodes.origV.pause();
 
         if (cancelled) {
             recorder.stop();
@@ -269,143 +353,94 @@
 
         _setProgress(1);
         _nodes.vpTxt.textContent  = 'Đang hoàn thiện video...';
-        _nodes.vpHint.textContent = 'Đợi một chút nữa...';
+        _nodes.vpHint.textContent = 'Vài giây nữa...';
 
-        // Dừng recorder và đợi finish
-        await new Promise(res => {
-            recorder.onstop = res;
-            recorder.stop();
-        });
-
+        await new Promise(res => { recorder.onstop = res; recorder.stop(); });
         if (audioCtx) audioCtx.close();
 
-        const ext      = mime.includes('mp4') ? 'mp4' : 'webm';
-        const blob     = new Blob(chunks, { type: mime });
-        _cache.url     = URL.createObjectURL(blob);
-        _cache.ext     = ext;
+        const ext  = mime.includes('mp4') ? 'mp4' : 'webm';
+        const blob = new Blob(chunks, { type: mime });
+        _cache.url = URL.createObjectURL(blob);
+        _cache.ext = ext;
 
         _nodes.procV.src = _cache.url;
-        _nodes.procV.style.display = 'block';
-        _nodes.pInfo.textContent   = `${vw} × ${vh} · ${_fmtDur(duration)} · ${_fmtSize(blob.size)}`;
-        _nodes.res.style.display   = 'block';
-        _nodes.dl.style.display    = 'inline-block';
+        _nodes.procV.style.display  = 'block';
+        _nodes.pInfo.textContent    = `${vw} × ${vh} · ${_fmtDur(dur)} · ${_fmtSize(blob.size)}`;
+        _nodes.res.style.display    = 'block';
+        _nodes.dl.style.display     = 'inline-block';
         _nodes.vpWrap.style.display = 'none';
-
-        // Khôi phục audio playback cho video gốc
-        _nodes.origV.muted = false;
-
+        _nodes.origV.muted          = false;
         _state('Hoàn tất!', 'ok');
+        if (window.trackAction) trackAction('remove_video', { file_type: f.type, file_size: f.size });
     }
 
-    // Seek video tới thời điểm t, trả Promise resolve khi seeked
-    function _seekTo(video, t) {
-        return new Promise(res => {
-            const onSeeked = () => { video.removeEventListener('seeked', onSeeked); res(); };
-            video.addEventListener('seeked', onSeeked);
-            video.currentTime = t;
-        });
-    }
-
-    // Nhường microtask để không block UI
-    function _tick() {
-        return new Promise(res => setTimeout(res, 0));
-    }
-
+    // ── Helpers ───────────────────────────────────────────────────────────────
     function _setProgress(ratio) {
-        const pct = Math.round(ratio * 100);
-        _nodes.vpFill.style.width  = pct + '%';
-        _nodes.vpPct.textContent   = pct + '%';
+        const pct = Math.min(100, Math.round(ratio * 100));
+        _nodes.vpFill.style.width = pct + '%';
+        _nodes.vpPct.textContent  = pct + '%';
     }
 
     function _fmtDur(s) {
-        const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-        return `${m}:${String(sec).padStart(2, '0')}`;
+        return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
     }
 
-    function _fmtSize(bytes) {
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    function _fmtSize(b) {
+        return b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
     }
 
-    // ── UI helpers ────────────────────────────────────────────────────────────
     function _showImageUI() {
-        _nodes.orig.style.display  = 'block';
-        _nodes.origV.style.display = 'none';
-        _nodes.proc.style.display  = 'none';
-        _nodes.procV.style.display = 'none';
+        _nodes.orig.style.display   = 'block';
+        _nodes.origV.style.display  = 'none';
+        _nodes.proc.style.display   = 'none';
+        _nodes.procV.style.display  = 'none';
         _nodes.vpWrap.style.display = 'none';
     }
 
     function _showVideoUI() {
-        _nodes.orig.style.display  = 'none';
-        _nodes.origV.style.display = 'none'; // sẽ hiện sau khi load
-        _nodes.proc.style.display  = 'none';
-        _nodes.procV.style.display = 'none';
+        _nodes.orig.style.display   = 'none';
+        _nodes.origV.style.display  = 'none';
+        _nodes.proc.style.display   = 'none';
+        _nodes.procV.style.display  = 'none';
     }
 
-    // ── Dispatch theo loại file ───────────────────────────────────────────────
     async function _handle(f) {
-        if (f.type.startsWith('image/')) {
-            await _handleImage(f);
-        } else if (f.type.startsWith('video/')) {
-            await _handleVideo(f);
-        } else {
-            _state('Định dạng không được hỗ trợ.', 'err');
-        }
+        if (f.type.startsWith('image/'))      await _handleImage(f);
+        else if (f.type.startsWith('video/')) await _handleVideo(f);
+        else _state('Định dạng không được hỗ trợ.', 'err');
     }
 
-    // ── Event listeners ───────────────────────────────────────────────────────
-    _nodes.area.addEventListener('click', () => _nodes.input.click());
-
-    _nodes.input.addEventListener('change', e => {
-        if (e.target.files[0]) _handle(e.target.files[0]);
-    });
-
-    _nodes.area.addEventListener('dragover', e => {
-        e.preventDefault();
-        _nodes.area.classList.add('drag-over');
-    });
-
-    _nodes.area.addEventListener('dragleave', () => {
-        _nodes.area.classList.remove('drag-over');
-    });
-
-    _nodes.area.addEventListener('drop', e => {
-        e.preventDefault();
-        _nodes.area.classList.remove('drag-over');
+    // ── Events ────────────────────────────────────────────────────────────────
+    _nodes.area.addEventListener('click',    () => _nodes.input.click());
+    _nodes.input.addEventListener('change',  e => { if (e.target.files[0]) _handle(e.target.files[0]); });
+    _nodes.area.addEventListener('dragover', e => { e.preventDefault(); _nodes.area.classList.add('drag-over'); });
+    _nodes.area.addEventListener('dragleave',() => _nodes.area.classList.remove('drag-over'));
+    _nodes.area.addEventListener('drop',     e => {
+        e.preventDefault(); _nodes.area.classList.remove('drag-over');
         if (e.dataTransfer.files[0]) _handle(e.dataTransfer.files[0]);
     });
 
     _nodes.rs.addEventListener('click', () => {
-        // Hủy video đang xử lý nếu có
-        if (_nodes.rs._cancelVideo) {
-            _nodes.rs._cancelVideo();
-            _nodes.rs._cancelVideo = null;
-        }
-        // Giải phóng object URLs
+        if (_nodes.rs._cancelVideo) { _nodes.rs._cancelVideo(); _nodes.rs._cancelVideo = null; }
         if (_cache.url && _cache.isVideo) URL.revokeObjectURL(_cache.url);
-        if (_nodes.origV.src) { URL.revokeObjectURL(_nodes.origV.src); _nodes.origV.src = ''; }
+        if (_nodes.origV.src) { _nodes.origV.pause(); URL.revokeObjectURL(_nodes.origV.src); _nodes.origV.src = ''; }
         if (_nodes.procV.src) { URL.revokeObjectURL(_nodes.procV.src); _nodes.procV.src = ''; }
-
-        _nodes.view.style.display = 'none';
+        _nodes.view.style.display   = 'none';
         _nodes.vpWrap.style.display = 'none';
-        _nodes.input.value = '';
-        _cache = { url: null, name: 'result', isVideo: false };
+        _nodes.input.value          = '';
+        _cache = { url: null, name: 'result', isVideo: false, ext: 'webm' };
         _state('');
     });
 
     _nodes.dl.addEventListener('click', () => {
         if (!_cache.url) return;
-        const l = _d.createElement('a');
-        if (_cache.isVideo) {
-            l.download = `${_cache.name}_no_watermark.${_cache.ext || 'webm'}`;
-        } else {
-            l.download = `${_cache.name}_no_watermark.png`;
-        }
-        l.href = _cache.url;
-        l.click();
+        const a  = _d.createElement('a');
+        a.href     = _cache.url;
+        a.download = _cache.isVideo
+            ? `${_cache.name}_no_watermark.${_cache.ext}`
+            : `${_cache.name}_no_watermark.png`;
+        a.click();
     });
 
-    // Khởi tạo
     _init();
 })();
