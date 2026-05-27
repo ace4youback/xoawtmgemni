@@ -256,6 +256,8 @@ tr:hover td{background:#131110}
 
 <script src="analytics.js"></script>
 <script>
+const PALETTE  = ['#4ade80','#60a5fa','#facc15','#c084fc','#f97316','#fb7185','#34d399'];
+
 const $login   = document.getElementById('loginScreen');
 const $dash    = document.getElementById('dashboard');
 const $pwIn    = document.getElementById('pwInput');
@@ -361,7 +363,6 @@ function renderStats(rows) {
 }
 
 // ── Bar charts ───────────────────────────────────────────────
-const PALETTE = ['#4ade80','#60a5fa','#facc15','#c084fc','#f97316','#fb7185','#34d399'];
 function renderBar(id, data) {
     const el  = document.getElementById(id);
     const max = Math.max(...data.map(d=>d.v),1);
