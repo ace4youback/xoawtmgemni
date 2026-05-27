@@ -312,7 +312,11 @@ function startAutoRefresh() {
     _cdTimer = setInterval(() => {
         _cdLeft--;
         _updateCD();
-        if (_cdLeft <= 0) { loadData(); _cdLeft = _cdTotal; }
+        if (_cdLeft <= 0) {
+            _cdLeft = _cdTotal;
+            _updateCD();
+            loadData();
+        }
     }, 1000);
 }
 
