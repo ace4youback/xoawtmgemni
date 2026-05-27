@@ -12,125 +12,142 @@
   --text:#f0ece6;--muted:#7a7068;--accent:#4ade80;--accent2:#facc15;
   --red:#f87171;--blue:#60a5fa;--purple:#c084fc;
 }
-body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
 
-/* Login */
+/* ── Login ── */
 #loginScreen{
-  display:flex;align-items:center;justify-content:center;min-height:100vh;
-  background:radial-gradient(ellipse at 50% 40%, #1a2e1a 0%, var(--bg) 70%);
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;
+  background:radial-gradient(ellipse at 50% 40%,#1a2e1a 0%,var(--bg) 70%);
 }
 .login-box{
   background:var(--surface);border:1px solid var(--border);border-radius:16px;
-  padding:48px 40px;width:100%;max-width:360px;text-align:center;
+  padding:40px 32px;width:100%;max-width:340px;text-align:center;
 }
-.login-box h2{font-family:'Instrument Serif',serif;font-size:28px;font-weight:400;margin-bottom:6px}
-.login-box p{font-size:13px;color:var(--muted);margin-bottom:32px}
+.login-box h2{font-family:'Instrument Serif',serif;font-size:26px;font-weight:400;margin-bottom:6px}
+.login-box p{font-size:13px;color:var(--muted);margin-bottom:28px}
 .login-input{
-  width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);
-  border-radius:8px;color:var(--text);font-size:14px;font-family:'Geist',sans-serif;
-  outline:none;margin-bottom:14px;transition:border-color .2s;
+  width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:15px;font-family:'Geist',sans-serif;
+  outline:none;margin-bottom:12px;transition:border-color .2s;
 }
 .login-input:focus{border-color:var(--accent)}
 .login-btn{
-  width:100%;padding:12px;background:var(--accent);color:#000;border:none;
-  border-radius:8px;font-size:14px;font-weight:600;font-family:'Geist',sans-serif;
+  width:100%;padding:13px;background:var(--accent);color:#000;border:none;
+  border-radius:8px;font-size:15px;font-weight:600;font-family:'Geist',sans-serif;
   cursor:pointer;transition:opacity .15s;
 }
 .login-btn:hover{opacity:.85}
 .login-err{font-size:12px;color:var(--red);margin-top:8px}
 
-/* Dashboard */
+/* ── Dashboard ── */
 #dashboard{display:none}
+
 header{
-  padding:18px 32px;border-bottom:1px solid var(--border);background:var(--surface);
-  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface);
+  position:sticky;top:0;z-index:10;
 }
-.logo{font-family:'Instrument Serif',serif;font-size:18px}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.logo{font-family:'Instrument Serif',serif;font-size:17px;white-space:nowrap}
 .logo span{color:var(--muted);font-style:italic}
-.header-actions{display:flex;gap:10px;align-items:center}
+.header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+#lastUpdated{font-size:11px;color:var(--muted);white-space:nowrap}
+
+/* Refresh selector */
+.refresh-wrap{display:flex;align-items:center;gap:6px}
+.refresh-label{font-size:11px;color:var(--muted);white-space:nowrap}
+.refresh-select{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:6px;padding:5px 8px;font-size:12px;font-family:'Geist',sans-serif;
+  cursor:pointer;outline:none;
+}
+.refresh-select:focus{border-color:var(--accent)}
+
 .btn{
-  padding:8px 16px;border-radius:6px;font-size:12px;font-weight:500;
+  padding:7px 14px;border-radius:6px;font-size:12px;font-weight:500;
   font-family:'Geist',sans-serif;cursor:pointer;border:none;transition:opacity .15s;
+  white-space:nowrap;
 }
 .btn-primary{background:var(--accent);color:#000}
 .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
 .btn:hover{opacity:.8}
 
-.dash-inner{max-width:1200px;margin:0 auto;padding:32px 24px}
+/* countdown ring */
+.countdown-wrap{display:flex;align-items:center;gap:5px}
+.cd-ring{width:18px;height:18px;flex-shrink:0}
+.cd-ring circle{fill:none;stroke-width:3;transform-origin:center;transform:rotate(-90deg)}
+.cd-bg{stroke:var(--border)}
+.cd-fill{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .9s linear}
+#cdText{font-size:11px;color:var(--muted)}
 
-/* Stats cards */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+.dash-inner{max-width:1200px;margin:0 auto;padding:20px 14px 48px}
+
+/* ── Stats ── */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;margin-bottom:20px;
+}
+@media(min-width:600px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
 .stat-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:12px;
-  padding:24px 20px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:16px 14px;
 }
-.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
-.stat-value{font-size:36px;font-weight:600;line-height:1;margin-bottom:4px}
-.stat-sub{font-size:12px;color:var(--muted)}
-.c-green{color:var(--accent)}
-.c-yellow{color:var(--accent2)}
-.c-blue{color:var(--blue)}
-.c-purple{color:var(--purple)}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.stat-value{font-size:28px;font-weight:600;line-height:1;margin-bottom:3px}
+.stat-sub{font-size:11px;color:var(--muted)}
+.c-green{color:var(--accent)}.c-yellow{color:var(--accent2)}.c-blue{color:var(--blue)}.c-purple{color:var(--purple)}
 
-/* Charts row */
-.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
-@media(max-width:700px){.charts-row{grid-template-columns:1fr}}
+/* ── Charts ── */
+.charts-row{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:20px}
+@media(min-width:600px){.charts-row{grid-template-columns:1fr 1fr}}
 .chart-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 16px;
 }
-.card-title{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:20px}
+.card-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
 
-/* Bar chart */
-.bar-list{display:flex;flex-direction:column;gap:10px}
-.bar-row{display:flex;align-items:center;gap:10px;font-size:13px}
-.bar-label{width:90px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;font-size:12px}
-.bar-track{flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden}
-.bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
-.bar-val{width:32px;text-align:right;color:var(--text);font-size:12px;flex-shrink:0}
+.bar-list{display:flex;flex-direction:column;gap:9px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-label{width:80px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;font-size:12px}
+.bar-track{flex:1;background:var(--surface2);border-radius:4px;height:7px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.bar-val{width:28px;text-align:right;color:var(--text);font-size:12px;flex-shrink:0}
 
-/* Timeline */
-.timeline-wrap{position:relative;height:120px;margin-top:8px}
-.tl-svg{width:100%;height:100%}
+.timeline-wrap{position:relative;height:110px;margin-top:6px}
+.tl-svg{width:100%;height:100%;display:block}
 
-/* Table */
+/* ── Table ── */
 .table-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:12px;
-  overflow:hidden;margin-bottom:32px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;margin-bottom:20px;
 }
 .table-header{
-  padding:16px 20px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
 }
-.table-title{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
+.table-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}
 th{
-  padding:10px 16px;text-align:left;font-size:11px;font-weight:500;
-  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  padding:9px 12px;text-align:left;font-size:10px;font-weight:500;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.4px;
   border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;
 }
-td{padding:12px 16px;border-bottom:1px solid #1a1714;color:var(--text);vertical-align:middle}
+td{padding:10px 12px;border-bottom:1px solid #171412;color:var(--text);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:#161210}
-.badge{
-  display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;
-}
+tr:hover td{background:#131110}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:500}
 .badge-mobile{background:#1e2d1e;color:var(--accent)}
 .badge-desktop{background:#1e1e2e;color:var(--blue)}
-.ip-text{font-family:monospace;font-size:12px;color:var(--muted)}
-.time-text{font-size:12px;color:var(--muted)}
+.ip-text{font-family:monospace;font-size:11px;color:var(--muted)}
+.time-text{font-size:11px;color:var(--muted)}
 
-/* Loading */
-.loading{
-  text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;
-}
+.loading{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px}
 .spinner{
-  width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);
-  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;
+  width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-
-.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -140,7 +157,7 @@ tr:hover td{background:#161210}
   <div class="login-box">
     <h2>Gemayni</h2>
     <p>Analytics Dashboard</p>
-    <input class="login-input" type="password" id="pwInput" placeholder="Mật khẩu admin" />
+    <input class="login-input" type="password" id="pwInput" placeholder="Mật khẩu admin" autocomplete="current-password"/>
     <button class="login-btn" id="loginBtn">Đăng nhập</button>
     <p class="login-err" id="loginErr" style="display:none">Sai mật khẩu</p>
   </div>
@@ -149,16 +166,40 @@ tr:hover td{background:#161210}
 <!-- Dashboard -->
 <div id="dashboard">
   <header>
-    <div class="logo">Gemayni <span>analytics</span></div>
-    <div class="header-actions">
-      <span id="lastUpdated" style="font-size:12px;color:var(--muted)"></span>
-      <button class="btn btn-primary" id="refreshBtn">Làm mới</button>
-      <button class="btn btn-ghost" id="logoutBtn">Đăng xuất</button>
+    <div class="header-top">
+      <div class="logo">Gemayni <span>analytics</span></div>
+      <div class="header-actions">
+        <!-- Countdown ring -->
+        <div class="countdown-wrap" id="cdWrap" style="display:none">
+          <svg class="cd-ring" viewBox="0 0 20 20">
+            <circle class="cd-bg" cx="10" cy="10" r="7"/>
+            <circle class="cd-fill" id="cdCircle" cx="10" cy="10" r="7"
+              stroke-dasharray="44" stroke-dashoffset="0"/>
+          </svg>
+          <span id="cdText"></span>
+        </div>
+
+        <!-- Refresh interval selector -->
+        <div class="refresh-wrap">
+          <span class="refresh-label">Refresh:</span>
+          <select class="refresh-select" id="refreshSelect">
+            <option value="5">5 giây</option>
+            <option value="10">10 giây</option>
+            <option value="30">30 giây</option>
+            <option value="60">1 phút</option>
+            <option value="120" selected>2 phút</option>
+            <option value="0">Tắt</option>
+          </select>
+        </div>
+
+        <span id="lastUpdated"></span>
+        <button class="btn btn-primary" id="refreshBtn">↺ Làm mới</button>
+        <button class="btn btn-ghost" id="logoutBtn">Đăng xuất</button>
+      </div>
     </div>
   </header>
 
   <div class="dash-inner">
-    <!-- Stats -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Tổng lượt vào</div>
@@ -166,7 +207,7 @@ tr:hover td{background:#161210}
         <div class="stat-sub" id="statToday">hôm nay: —</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Lượt vào hôm nay</div>
+        <div class="stat-label">Hôm nay</div>
         <div class="stat-value c-yellow" id="statTodayV">—</div>
         <div class="stat-sub" id="statYesterday">hôm qua: —</div>
       </div>
@@ -182,7 +223,6 @@ tr:hover td{background:#161210}
       </div>
     </div>
 
-    <!-- Charts -->
     <div class="charts-row">
       <div class="chart-card">
         <div class="card-title">Trình duyệt</div>
@@ -193,7 +233,7 @@ tr:hover td{background:#161210}
         <div class="bar-list" id="chartCountry"></div>
       </div>
       <div class="chart-card">
-        <div class="card-title">Thiết bị & OS</div>
+        <div class="card-title">Thiết bị &amp; OS</div>
         <div class="bar-list" id="chartDevice"></div>
       </div>
       <div class="chart-card">
@@ -202,11 +242,10 @@ tr:hover td{background:#161210}
       </div>
     </div>
 
-    <!-- Table -->
     <div class="table-card">
       <div class="table-header">
         <span class="table-title">Lượt vào gần đây</span>
-        <span id="tableCount" style="font-size:12px;color:var(--muted)"></span>
+        <span id="tableCount" style="font-size:11px;color:var(--muted)"></span>
       </div>
       <div id="tableWrap">
         <div class="loading"><div class="spinner"></div>Đang tải...</div>
@@ -217,199 +256,197 @@ tr:hover td{background:#161210}
 
 <script src="analytics.js"></script>
 <script>
-// ── Login ────────────────────────────────────────────────────
-const $login  = document.getElementById('loginScreen');
-const $dash   = document.getElementById('dashboard');
-const $pwIn   = document.getElementById('pwInput');
-const $err    = document.getElementById('loginErr');
-const $refresh= document.getElementById('refreshBtn');
-const $logout = document.getElementById('logoutBtn');
+const $login   = document.getElementById('loginScreen');
+const $dash    = document.getElementById('dashboard');
+const $pwIn    = document.getElementById('pwInput');
+const $err     = document.getElementById('loginErr');
+const $refresh = document.getElementById('refreshBtn');
+const $logout  = document.getElementById('logoutBtn');
+const $rSel    = document.getElementById('refreshSelect');
+const $cdWrap  = document.getElementById('cdWrap');
+const $cdCircle= document.getElementById('cdCircle');
+const $cdText  = document.getElementById('cdText');
 
+// ── Login ────────────────────────────────────────────────────
 function tryLogin() {
     const { ADMIN_PASSWORD } = window._gmyConfig;
     if ($pwIn.value === ADMIN_PASSWORD) {
-        sessionStorage.setItem('gmy_admin', '1');
+        sessionStorage.setItem('gmy_admin','1');
         $login.style.display = 'none';
         $dash.style.display  = 'block';
         loadData();
+        startAutoRefresh();
     } else {
         $err.style.display = 'block';
+        $pwIn.select();
     }
 }
+document.getElementById('loginBtn').addEventListener('click', tryLogin);
+$pwIn.addEventListener('keydown', e => { if(e.key==='Enter') tryLogin(); });
 
-// Auto-login nếu đã đăng nhập trong session
 if (sessionStorage.getItem('gmy_admin')) {
     $login.style.display = 'none';
     $dash.style.display  = 'block';
     loadData();
+    startAutoRefresh();
 }
 
-document.getElementById('loginBtn').addEventListener('click', tryLogin);
-$pwIn.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
-$refresh.addEventListener('click', loadData);
-$logout.addEventListener('click', () => {
-    sessionStorage.removeItem('gmy_admin');
-    location.reload();
-});
+$refresh.addEventListener('click', () => { resetTimer(); loadData(); });
+$logout.addEventListener('click', () => { sessionStorage.removeItem('gmy_admin'); location.reload(); });
 
-// ── Load & render data ───────────────────────────────────────
+// ── Auto refresh + countdown ─────────────────────────────────
+let _timer = null, _cdTimer = null, _cdLeft = 0, _cdTotal = 0;
+const CIRC = 44; // 2πr ≈ 44
+
+function startAutoRefresh() {
+    clearInterval(_timer);
+    clearInterval(_cdTimer);
+    const secs = parseInt($rSel.value);
+    if (!secs) { $cdWrap.style.display='none'; return; }
+    $cdWrap.style.display = 'flex';
+    _cdTotal = secs;
+    _cdLeft  = secs;
+    _updateCD();
+    _cdTimer = setInterval(() => {
+        _cdLeft--;
+        _updateCD();
+        if (_cdLeft <= 0) { loadData(); _cdLeft = _cdTotal; }
+    }, 1000);
+}
+
+function resetTimer() {
+    _cdLeft = _cdTotal;
+    _updateCD();
+}
+
+function _updateCD() {
+    const ratio = _cdTotal > 0 ? _cdLeft / _cdTotal : 0;
+    $cdCircle.style.strokeDashoffset = (CIRC * (1 - ratio)).toFixed(2);
+    $cdText.textContent = _cdLeft + 's';
+}
+
+$rSel.addEventListener('change', () => { startAutoRefresh(); });
+
+// ── Load data ────────────────────────────────────────────────
 async function loadData() {
     const { sbSelect } = window._gmyConfig;
-    document.getElementById('lastUpdated').textContent = 'Đang tải...';
-
+    document.getElementById('lastUpdated').textContent = '⏳';
     try {
-        // Lấy tất cả visitors, sort mới nhất trước, giới hạn 500
-        const rows = await sbSelect('visitors', 'order=visited_at.desc&limit=500');
-
+        const rows = await sbSelect('visitors','order=visited_at.desc&limit=1000');
         document.getElementById('lastUpdated').textContent =
-            'Cập nhật: ' + new Date().toLocaleTimeString('vi-VN');
-
+            new Date().toLocaleTimeString('vi-VN');
         renderStats(rows);
         renderCharts(rows);
         renderTable(rows);
     } catch(e) {
         document.getElementById('tableWrap').innerHTML =
-            `<div class="empty">Lỗi kết nối Supabase. Kiểm tra config trong analytics.js</div>`;
-        console.error(e);
+            `<div class="empty">❌ Lỗi kết nối Supabase.<br><small>${e.message}</small></div>`;
     }
 }
 
 // ── Stats ────────────────────────────────────────────────────
 function renderStats(rows) {
-    const today   = new Date().toDateString();
-    const yest    = new Date(Date.now() - 86400000).toDateString();
-    const todayR  = rows.filter(r => new Date(r.visited_at).toDateString() === today);
-    const yestR   = rows.filter(r => new Date(r.visited_at).toDateString() === yest);
-    const ips     = new Set(rows.map(r => r.ip).filter(Boolean));
-    const countries = new Set(rows.map(r => r.country).filter(Boolean));
-
+    const today  = new Date().toDateString();
+    const yest   = new Date(Date.now()-86400000).toDateString();
+    const todayR = rows.filter(r=>new Date(r.visited_at).toDateString()===today);
+    const yestR  = rows.filter(r=>new Date(r.visited_at).toDateString()===yest);
+    const ips    = new Set(rows.map(r=>r.ip).filter(Boolean));
+    const ctrs   = new Set(rows.map(r=>r.country).filter(Boolean));
     document.getElementById('statTotal').textContent     = rows.length.toLocaleString();
     document.getElementById('statToday').textContent     = `hôm nay: ${todayR.length}`;
     document.getElementById('statTodayV').textContent    = todayR.length.toLocaleString();
     document.getElementById('statYesterday').textContent = `hôm qua: ${yestR.length}`;
-    document.getElementById('statCountries').textContent = countries.size.toLocaleString();
+    document.getElementById('statCountries').textContent = ctrs.size.toLocaleString();
     document.getElementById('statUniqueIP').textContent  = ips.size.toLocaleString();
 }
 
-// ── Bar chart helper ─────────────────────────────────────────
-function renderBar(containerId, data, colors) {
-    const el  = document.getElementById(containerId);
-    const max = Math.max(...data.map(d => d.v), 1);
-    const palette = colors || ['#4ade80','#60a5fa','#facc15','#c084fc','#f97316','#fb7185'];
-    el.innerHTML = data.slice(0,7).map((d,i) => `
+// ── Bar charts ───────────────────────────────────────────────
+const PALETTE = ['#4ade80','#60a5fa','#facc15','#c084fc','#f97316','#fb7185','#34d399'];
+function renderBar(id, data) {
+    const el  = document.getElementById(id);
+    const max = Math.max(...data.map(d=>d.v),1);
+    el.innerHTML = data.slice(0,7).map((d,i)=>`
         <div class="bar-row">
-          <div class="bar-label" title="${d.k}">${d.k || 'Unknown'}</div>
+          <div class="bar-label" title="${d.k}">${d.k||'Unknown'}</div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:${(d.v/max*100).toFixed(1)}%;background:${palette[i%palette.length]}"></div>
+            <div class="bar-fill" style="width:${(d.v/max*100).toFixed(1)}%;background:${PALETTE[i%PALETTE.length]}"></div>
           </div>
           <div class="bar-val">${d.v}</div>
         </div>`).join('');
-    if (!data.length) el.innerHTML = '<div class="empty" style="padding:16px">Chưa có dữ liệu</div>';
+    if(!data.length) el.innerHTML='<div class="empty" style="padding:12px;font-size:12px">Chưa có dữ liệu</div>';
+}
+function countBy(rows,key){
+    const m={};
+    rows.forEach(r=>{const v=r[key]||'Unknown';m[v]=(m[v]||0)+1;});
+    return Object.entries(m).map(([k,v])=>({k,v})).sort((a,b)=>b.v-a.v);
 }
 
-function countBy(rows, key) {
-    const m = {};
-    rows.forEach(r => { const v = r[key] || 'Unknown'; m[v] = (m[v]||0)+1; });
-    return Object.entries(m).map(([k,v]) => ({k,v})).sort((a,b) => b.v-a.v);
-}
-
-// ── Charts ───────────────────────────────────────────────────
 function renderCharts(rows) {
     renderBar('chartBrowser', countBy(rows,'browser'));
     renderBar('chartCountry', countBy(rows,'country'));
-
-    // Device + OS combined
-    const devOs = countBy(rows.map(r => ({...r, dev_os: `${r.device||'?'} · ${r.os||'?'}`})), 'dev_os');
+    const devOs = countBy(rows.map(r=>({...r,dev_os:`${r.device||'?'} · ${r.os||'?'}`})),'dev_os');
     renderBar('chartDevice', devOs);
-
     renderTimeline(rows);
 }
 
 function renderTimeline(rows) {
-    const today = new Date().toDateString();
-    const todayR = rows.filter(r => new Date(r.visited_at).toDateString() === today);
-    const hours = Array(24).fill(0);
-    todayR.forEach(r => { hours[new Date(r.visited_at).getHours()]++; });
-
-    const svg = document.getElementById('tlSvg');
-    const W = svg.parentElement.clientWidth || 400;
-    const H = 120;
-    const maxH = Math.max(...hours, 1);
-    const bw   = W / 24;
-    const colors = ['#4ade80'];
-
-    let bars = hours.map((v,i) => {
-        const bh  = v === 0 ? 2 : Math.max(4, (v / maxH) * (H - 28));
-        const x   = i * bw;
-        const y   = H - bh - 18;
-        const fill= v === 0 ? '#2a2520' : '#4ade80';
-        const now = new Date().getHours();
-        const highlight = i === now ? 'opacity:1' : 'opacity:0.7';
-        return `<rect x="${x+1}" y="${y}" width="${bw-2}" height="${bh}" rx="2" fill="${fill}" style="${highlight}"/>
-                <text x="${x+bw/2}" y="${H-4}" text-anchor="middle" font-size="9" fill="#4a4540">${i}</text>
-                ${v>0?`<text x="${x+bw/2}" y="${y-3}" text-anchor="middle" font-size="9" fill="${fill}">${v}</text>`:''}`;
+    const today  = new Date().toDateString();
+    const todayR = rows.filter(r=>new Date(r.visited_at).toDateString()===today);
+    const hours  = Array(24).fill(0);
+    todayR.forEach(r=>{ hours[new Date(r.visited_at).getHours()]++; });
+    const svg  = document.getElementById('tlSvg');
+    const W    = svg.parentElement.clientWidth || 320;
+    const H    = 110;
+    const maxH = Math.max(...hours,1);
+    const bw   = W/24;
+    const now  = new Date().getHours();
+    const bars = hours.map((v,i)=>{
+        const bh   = v===0?2:Math.max(4,(v/maxH)*(H-26));
+        const x    = i*bw, y=H-bh-18;
+        const fill = v===0?'#2a2520':'#4ade80';
+        const op   = i===now?'1':'0.65';
+        return `<rect x="${x+1}" y="${y}" width="${bw-2}" height="${bh}" rx="2" fill="${fill}" opacity="${op}"/>
+                <text x="${x+bw/2}" y="${H-4}" text-anchor="middle" font-size="8" fill="#4a4540">${i}</text>
+                ${v>0?`<text x="${x+bw/2}" y="${y-3}" text-anchor="middle" font-size="8" fill="${fill}">${v}`:''}`;
     }).join('');
-
-    svg.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+    svg.innerHTML=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
 }
 
 // ── Table ────────────────────────────────────────────────────
 function renderTable(rows) {
     const wrap = document.getElementById('tableWrap');
     document.getElementById('tableCount').textContent = `${rows.length} bản ghi`;
-
-    if (!rows.length) {
-        wrap.innerHTML = '<div class="empty">Chưa có lượt truy cập nào được ghi nhận</div>';
-        return;
+    if(!rows.length){
+        wrap.innerHTML='<div class="empty">Chưa có lượt truy cập nào</div>';return;
     }
-
-    const rowsHtml = rows.slice(0, 200).map(r => {
-        const dt   = new Date(r.visited_at);
-        const time = dt.toLocaleString('vi-VN', { dateStyle:'short', timeStyle:'short' });
-        const devBadge = r.device === 'Mobile'
-            ? '<span class="badge badge-mobile">Mobile</span>'
-            : '<span class="badge badge-desktop">Desktop</span>';
-        const flag = r.country ? getFlag(r.country) : '';
-        return `<tr>
-          <td class="time-text">${time}</td>
-          <td class="ip-text">${r.ip || '—'}</td>
-          <td>${flag} ${r.city || ''} ${r.country || '—'}</td>
-          <td>${r.org ? r.org.slice(0,30) : '—'}</td>
-          <td>${devBadge}</td>
-          <td>${r.browser || '—'}</td>
-          <td>${r.os || '—'}</td>
-          <td>${r.screen || '—'}</td>
-          <td class="time-text">${r.referrer === 'direct' || !r.referrer ? 'Direct' : r.referrer.slice(0,30)}</td>
-        </tr>`;
-    }).join('');
-
-    wrap.innerHTML = `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Thời gian</th><th>IP</th><th>Vị trí</th><th>ISP</th>
-                <th>Thiết bị</th><th>Trình duyệt</th><th>OS</th><th>Màn hình</th><th>Nguồn</th>
-              </tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
-        </div>`;
-}
-
-// Simple country → flag emoji
-function getFlag(country) {
-    const map = {
-        'Vietnam':'🇻🇳','United States':'🇺🇸','Japan':'🇯🇵','South Korea':'🇰🇷',
+    const FLAGS={'Vietnam':'🇻🇳','United States':'🇺🇸','Japan':'🇯🇵','South Korea':'🇰🇷',
         'China':'🇨🇳','Thailand':'🇹🇭','Singapore':'🇸🇬','Germany':'🇩🇪',
         'France':'🇫🇷','United Kingdom':'🇬🇧','Australia':'🇦🇺','Canada':'🇨🇦',
-        'Indonesia':'🇮🇩','Philippines':'🇵🇭','Malaysia':'🇲🇾','India':'🇮🇳',
-    };
-    return map[country] || '🌐';
+        'Indonesia':'🇮🇩','Philippines':'🇵🇭','Malaysia':'🇲🇾','India':'🇮🇳'};
+    const html = rows.slice(0,300).map(r=>{
+        const t    = new Date(r.visited_at).toLocaleString('vi-VN',{dateStyle:'short',timeStyle:'short'});
+        const flag = FLAGS[r.country]||'🌐';
+        const badge= r.device==='Mobile'
+            ?'<span class="badge badge-mobile">📱 Mobile</span>'
+            :'<span class="badge badge-desktop">🖥 Desktop</span>';
+        return `<tr>
+          <td class="time-text">${t}</td>
+          <td class="ip-text">${r.ip||'—'}</td>
+          <td>${flag} ${r.city||''} ${r.country||'—'}</td>
+          <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.org?r.org.slice(0,28):'—'}</td>
+          <td>${badge}</td>
+          <td>${r.browser||'—'}</td>
+          <td>${r.os||'—'}</td>
+          <td>${r.screen||'—'}</td>
+          <td class="time-text">${(!r.referrer||r.referrer==='direct')?'Direct':r.referrer.slice(0,25)}</td>
+        </tr>`;
+    }).join('');
+    wrap.innerHTML=`<div class="table-wrap"><table>
+        <thead><tr>
+          <th>Thời gian</th><th>IP</th><th>Vị trí</th><th>ISP</th>
+          <th>Thiết bị</th><th>Trình duyệt</th><th>OS</th><th>Màn hình</th><th>Nguồn</th>
+        </tr></thead><tbody>${html}</tbody></table></div>`;
 }
-
-// Auto refresh mỗi 2 phút
-setInterval(() => { if (sessionStorage.getItem('gmy_admin')) loadData(); }, 120_000);
 </script>
 </body>
 </html>
