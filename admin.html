@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemayni — Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0d0c;--surface:#161412;--surface2:#1e1b18;--border:#2a2520;
+  --text:#f0ece6;--muted:#7a7068;--accent:#4ade80;--accent2:#facc15;
+  --red:#f87171;--blue:#60a5fa;--purple:#c084fc;
+}
+body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Login */
+#loginScreen{
+  display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:radial-gradient(ellipse at 50% 40%, #1a2e1a 0%, var(--bg) 70%);
+}
+.login-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:48px 40px;width:100%;max-width:360px;text-align:center;
+}
+.login-box h2{font-family:'Instrument Serif',serif;font-size:28px;font-weight:400;margin-bottom:6px}
+.login-box p{font-size:13px;color:var(--muted);margin-bottom:32px}
+.login-input{
+  width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:14px;font-family:'Geist',sans-serif;
+  outline:none;margin-bottom:14px;transition:border-color .2s;
+}
+.login-input:focus{border-color:var(--accent)}
+.login-btn{
+  width:100%;padding:12px;background:var(--accent);color:#000;border:none;
+  border-radius:8px;font-size:14px;font-weight:600;font-family:'Geist',sans-serif;
+  cursor:pointer;transition:opacity .15s;
+}
+.login-btn:hover{opacity:.85}
+.login-err{font-size:12px;color:var(--red);margin-top:8px}
+
+/* Dashboard */
+#dashboard{display:none}
+header{
+  padding:18px 32px;border-bottom:1px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo{font-family:'Instrument Serif',serif;font-size:18px}
+.logo span{color:var(--muted);font-style:italic}
+.header-actions{display:flex;gap:10px;align-items:center}
+.btn{
+  padding:8px 16px;border-radius:6px;font-size:12px;font-weight:500;
+  font-family:'Geist',sans-serif;cursor:pointer;border:none;transition:opacity .15s;
+}
+.btn-primary{background:var(--accent);color:#000}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn:hover{opacity:.8}
+
+.dash-inner{max-width:1200px;margin:0 auto;padding:32px 24px}
+
+/* Stats cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:24px 20px;
+}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.stat-value{font-size:36px;font-weight:600;line-height:1;margin-bottom:4px}
+.stat-sub{font-size:12px;color:var(--muted)}
+.c-green{color:var(--accent)}
+.c-yellow{color:var(--accent2)}
+.c-blue{color:var(--blue)}
+.c-purple{color:var(--purple)}
+
+/* Charts row */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+@media(max-width:700px){.charts-row{grid-template-columns:1fr}}
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;
+}
+.card-title{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:20px}
+
+/* Bar chart */
+.bar-list{display:flex;flex-direction:column;gap:10px}
+.bar-row{display:flex;align-items:center;gap:10px;font-size:13px}
+.bar-label{width:90px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;font-size:12px}
+.bar-track{flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.bar-val{width:32px;text-align:right;color:var(--text);font-size:12px;flex-shrink:0}
+
+/* Timeline */
+.timeline-wrap{position:relative;height:120px;margin-top:8px}
+.tl-svg{width:100%;height:100%}
+
+/* Table */
+.table-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;margin-bottom:32px;
+}
+.table-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.table-title{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  padding:10px 16px;text-align:left;font-size:11px;font-weight:500;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;
+}
+td{padding:12px 16px;border-bottom:1px solid #1a1714;color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#161210}
+.badge{
+  display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;
+}
+.badge-mobile{background:#1e2d1e;color:var(--accent)}
+.badge-desktop{background:#1e1e2e;color:var(--blue)}
+.ip-text{font-family:monospace;font-size:12px;color:var(--muted)}
+.time-text{font-size:12px;color:var(--muted)}
+
+/* Loading */
+.loading{
+  text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;
+}
+.spinner{
+  width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>Gemayni</h2>
+    <p>Analytics Dashboard</p>
+    <input class="login-input" type="password" id="pwInput" placeholder="Mật khẩu admin" />
+    <button class="login-btn" id="loginBtn">Đăng nhập</button>
+    <p class="login-err" id="loginErr" style="display:none">Sai mật khẩu</p>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+  <header>
+    <div class="logo">Gemayni <span>analytics</span></div>
+    <div class="header-actions">
+      <span id="lastUpdated" style="font-size:12px;color:var(--muted)"></span>
+      <button class="btn btn-primary" id="refreshBtn">Làm mới</button>
+      <button class="btn btn-ghost" id="logoutBtn">Đăng xuất</button>
+    </div>
+  </header>
+
+  <div class="dash-inner">
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Tổng lượt vào</div>
+        <div class="stat-value c-green" id="statTotal">—</div>
+        <div class="stat-sub" id="statToday">hôm nay: —</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Lượt vào hôm nay</div>
+        <div class="stat-value c-yellow" id="statTodayV">—</div>
+        <div class="stat-sub" id="statYesterday">hôm qua: —</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Quốc gia</div>
+        <div class="stat-value c-blue" id="statCountries">—</div>
+        <div class="stat-sub">quốc gia khác nhau</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">IP độc lập</div>
+        <div class="stat-value c-purple" id="statUniqueIP">—</div>
+        <div class="stat-sub">địa chỉ IP riêng biệt</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-title">Trình duyệt</div>
+        <div class="bar-list" id="chartBrowser"></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Quốc gia</div>
+        <div class="bar-list" id="chartCountry"></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Thiết bị & OS</div>
+        <div class="bar-list" id="chartDevice"></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Giờ trong ngày (hôm nay)</div>
+        <div class="timeline-wrap"><svg class="tl-svg" id="tlSvg"></svg></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <span class="table-title">Lượt vào gần đây</span>
+        <span id="tableCount" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+      <div id="tableWrap">
+        <div class="loading"><div class="spinner"></div>Đang tải...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="analytics.js"></script>
+<script>
+// ── Login ────────────────────────────────────────────────────
+const $login  = document.getElementById('loginScreen');
+const $dash   = document.getElementById('dashboard');
+const $pwIn   = document.getElementById('pwInput');
+const $err    = document.getElementById('loginErr');
+const $refresh= document.getElementById('refreshBtn');
+const $logout = document.getElementById('logoutBtn');
+
+function tryLogin() {
+    const { ADMIN_PASSWORD } = window._gmyConfig;
+    if ($pwIn.value === ADMIN_PASSWORD) {
+        sessionStorage.setItem('gmy_admin', '1');
+        $login.style.display = 'none';
+        $dash.style.display  = 'block';
+        loadData();
+    } else {
+        $err.style.display = 'block';
+    }
+}
+
+// Auto-login nếu đã đăng nhập trong session
+if (sessionStorage.getItem('gmy_admin')) {
+    $login.style.display = 'none';
+    $dash.style.display  = 'block';
+    loadData();
+}
+
+document.getElementById('loginBtn').addEventListener('click', tryLogin);
+$pwIn.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+$refresh.addEventListener('click', loadData);
+$logout.addEventListener('click', () => {
+    sessionStorage.removeItem('gmy_admin');
+    location.reload();
+});
+
+// ── Load & render data ───────────────────────────────────────
+async function loadData() {
+    const { sbSelect } = window._gmyConfig;
+    document.getElementById('lastUpdated').textContent = 'Đang tải...';
+
+    try {
+        // Lấy tất cả visitors, sort mới nhất trước, giới hạn 500
+        const rows = await sbSelect('visitors', 'order=visited_at.desc&limit=500');
+
+        document.getElementById('lastUpdated').textContent =
+            'Cập nhật: ' + new Date().toLocaleTimeString('vi-VN');
+
+        renderStats(rows);
+        renderCharts(rows);
+        renderTable(rows);
+    } catch(e) {
+        document.getElementById('tableWrap').innerHTML =
+            `<div class="empty">Lỗi kết nối Supabase. Kiểm tra config trong analytics.js</div>`;
+        console.error(e);
+    }
+}
+
+// ── Stats ────────────────────────────────────────────────────
+function renderStats(rows) {
+    const today   = new Date().toDateString();
+    const yest    = new Date(Date.now() - 86400000).toDateString();
+    const todayR  = rows.filter(r => new Date(r.visited_at).toDateString() === today);
+    const yestR   = rows.filter(r => new Date(r.visited_at).toDateString() === yest);
+    const ips     = new Set(rows.map(r => r.ip).filter(Boolean));
+    const countries = new Set(rows.map(r => r.country).filter(Boolean));
+
+    document.getElementById('statTotal').textContent     = rows.length.toLocaleString();
+    document.getElementById('statToday').textContent     = `hôm nay: ${todayR.length}`;
+    document.getElementById('statTodayV').textContent    = todayR.length.toLocaleString();
+    document.getElementById('statYesterday').textContent = `hôm qua: ${yestR.length}`;
+    document.getElementById('statCountries').textContent = countries.size.toLocaleString();
+    document.getElementById('statUniqueIP').textContent  = ips.size.toLocaleString();
+}
+
+// ── Bar chart helper ─────────────────────────────────────────
+function renderBar(containerId, data, colors) {
+    const el  = document.getElementById(containerId);
+    const max = Math.max(...data.map(d => d.v), 1);
+    const palette = colors || ['#4ade80','#60a5fa','#facc15','#c084fc','#f97316','#fb7185'];
+    el.innerHTML = data.slice(0,7).map((d,i) => `
+        <div class="bar-row">
+          <div class="bar-label" title="${d.k}">${d.k || 'Unknown'}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${(d.v/max*100).toFixed(1)}%;background:${palette[i%palette.length]}"></div>
+          </div>
+          <div class="bar-val">${d.v}</div>
+        </div>`).join('');
+    if (!data.length) el.innerHTML = '<div class="empty" style="padding:16px">Chưa có dữ liệu</div>';
+}
+
+function countBy(rows, key) {
+    const m = {};
+    rows.forEach(r => { const v = r[key] || 'Unknown'; m[v] = (m[v]||0)+1; });
+    return Object.entries(m).map(([k,v]) => ({k,v})).sort((a,b) => b.v-a.v);
+}
+
+// ── Charts ───────────────────────────────────────────────────
+function renderCharts(rows) {
+    renderBar('chartBrowser', countBy(rows,'browser'));
+    renderBar('chartCountry', countBy(rows,'country'));
+
+    // Device + OS combined
+    const devOs = countBy(rows.map(r => ({...r, dev_os: `${r.device||'?'} · ${r.os||'?'}`})), 'dev_os');
+    renderBar('chartDevice', devOs);
+
+    renderTimeline(rows);
+}
+
+function renderTimeline(rows) {
+    const today = new Date().toDateString();
+    const todayR = rows.filter(r => new Date(r.visited_at).toDateString() === today);
+    const hours = Array(24).fill(0);
+    todayR.forEach(r => { hours[new Date(r.visited_at).getHours()]++; });
+
+    const svg = document.getElementById('tlSvg');
+    const W = svg.parentElement.clientWidth || 400;
+    const H = 120;
+    const maxH = Math.max(...hours, 1);
+    const bw   = W / 24;
+    const colors = ['#4ade80'];
+
+    let bars = hours.map((v,i) => {
+        const bh  = v === 0 ? 2 : Math.max(4, (v / maxH) * (H - 28));
+        const x   = i * bw;
+        const y   = H - bh - 18;
+        const fill= v === 0 ? '#2a2520' : '#4ade80';
+        const now = new Date().getHours();
+        const highlight = i === now ? 'opacity:1' : 'opacity:0.7';
+        return `<rect x="${x+1}" y="${y}" width="${bw-2}" height="${bh}" rx="2" fill="${fill}" style="${highlight}"/>
+                <text x="${x+bw/2}" y="${H-4}" text-anchor="middle" font-size="9" fill="#4a4540">${i}</text>
+                ${v>0?`<text x="${x+bw/2}" y="${y-3}" text-anchor="middle" font-size="9" fill="${fill}">${v}</text>`:''}`;
+    }).join('');
+
+    svg.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+}
+
+// ── Table ────────────────────────────────────────────────────
+function renderTable(rows) {
+    const wrap = document.getElementById('tableWrap');
+    document.getElementById('tableCount').textContent = `${rows.length} bản ghi`;
+
+    if (!rows.length) {
+        wrap.innerHTML = '<div class="empty">Chưa có lượt truy cập nào được ghi nhận</div>';
+        return;
+    }
+
+    const rowsHtml = rows.slice(0, 200).map(r => {
+        const dt   = new Date(r.visited_at);
+        const time = dt.toLocaleString('vi-VN', { dateStyle:'short', timeStyle:'short' });
+        const devBadge = r.device === 'Mobile'
+            ? '<span class="badge badge-mobile">Mobile</span>'
+            : '<span class="badge badge-desktop">Desktop</span>';
+        const flag = r.country ? getFlag(r.country) : '';
+        return `<tr>
+          <td class="time-text">${time}</td>
+          <td class="ip-text">${r.ip || '—'}</td>
+          <td>${flag} ${r.city || ''} ${r.country || '—'}</td>
+          <td>${r.org ? r.org.slice(0,30) : '—'}</td>
+          <td>${devBadge}</td>
+          <td>${r.browser || '—'}</td>
+          <td>${r.os || '—'}</td>
+          <td>${r.screen || '—'}</td>
+          <td class="time-text">${r.referrer === 'direct' || !r.referrer ? 'Direct' : r.referrer.slice(0,30)}</td>
+        </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Thời gian</th><th>IP</th><th>Vị trí</th><th>ISP</th>
+                <th>Thiết bị</th><th>Trình duyệt</th><th>OS</th><th>Màn hình</th><th>Nguồn</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+}
+
+// Simple country → flag emoji
+function getFlag(country) {
+    const map = {
+        'Vietnam':'🇻🇳','United States':'🇺🇸','Japan':'🇯🇵','South Korea':'🇰🇷',
+        'China':'🇨🇳','Thailand':'🇹🇭','Singapore':'🇸🇬','Germany':'🇩🇪',
+        'France':'🇫🇷','United Kingdom':'🇬🇧','Australia':'🇦🇺','Canada':'🇨🇦',
+        'Indonesia':'🇮🇩','Philippines':'🇵🇭','Malaysia':'🇲🇾','India':'🇮🇳',
+    };
+    return map[country] || '🌐';
+}
+
+// Auto refresh mỗi 2 phút
+setInterval(() => { if (sessionStorage.getItem('gmy_admin')) loadData(); }, 120_000);
+</script>
+</body>
+</html>
