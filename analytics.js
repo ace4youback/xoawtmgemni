@@ -10,7 +10,7 @@
 // 5. Điền vào SUPABASE_URL và SUPABASE_ANON_KEY bên dưới
 // ============================================================
 
-const SUPABASE_URL      = 'https://xoalogoanhgemini.supabase.co';   // ← thay vào đây
+const SUPABASE_URL      = 'https://bmpqgdmugalkemwoerpl.supabase.co';   // ← thay vào đây
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtcHFnZG11Z2Fsa2Vtd29lcnBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NDQ5NTEsImV4cCI6MjA5NTQyMDk1MX0.z_MHCB0hpawd6-vVLSLYf4TY1354BmNSfMeRvksRysA';                      // ← thay vào đây
 const ADMIN_PASSWORD    = '6VaH%sdH2gX5/2@';                        // ← đổi mật khẩu admin
 
