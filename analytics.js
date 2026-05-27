@@ -40,24 +40,45 @@ async function sbSelect(table, params = '') {
     return res.json();
 }
 
-// ── Lấy thông tin IP / địa lý ────────────────────────────────
-async function getGeoInfo() {
+// ── Lấy thông tin IP / địa lý (có fallback) ─────────────────
+async function fetchWithTimeout(url, ms) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), ms || 6000);
     try {
-        const r = await fetch('https://ipapi.co/json/');
-        if (!r.ok) return {};
-        const d = await r.json();
-        return {
-            ip:      d.ip,
-            country: d.country_name || '',
-            city:    d.city || '',
-            region:  d.region || '',
-            org:     d.org || '',        // ISP/tổ chức
-            lat:     d.latitude,
-            lon:     d.longitude,
-        };
-    } catch {
-        return {};
+        const r = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(id);
+        return r;
+    } catch(e) { clearTimeout(id); throw e; }
+}
+
+async function getGeoInfo() {
+    const services = [
+        {
+            url: 'https://ipwho.is/',
+            parse: d => ({ ip: d.ip, country: d.country||'', city: d.city||'', region: d.region||'', org: (d.connection&&(d.connection.org||d.connection.isp))||'', lat: d.latitude, lon: d.longitude }),
+            check: d => d.success !== false && !!d.ip,
+        },
+        {
+            url: 'https://ipapi.co/json/',
+            parse: d => ({ ip: d.ip, country: d.country_name||'', city: d.city||'', region: d.region||'', org: d.org||'', lat: d.latitude, lon: d.longitude }),
+            check: d => !!d.ip && !d.error,
+        },
+        {
+            url: 'https://ip-api.com/json/?fields=status,country,regionName,city,org,query,lat,lon',
+            parse: d => ({ ip: d.query, country: d.country||'', city: d.city||'', region: d.regionName||'', org: d.org||'', lat: d.lat, lon: d.lon }),
+            check: d => d.status === 'success',
+        },
+    ];
+    for (const svc of services) {
+        try {
+            const r = await fetchWithTimeout(svc.url, 6000);
+            if (!r.ok) continue;
+            const d = await r.json();
+            if (!svc.check(d)) continue;
+            return svc.parse(d);
+        } catch(e) { /* thử service tiếp */ }
     }
+    return {}; // vẫn insert, chỉ thiếu geo
 }
 
 // ── Thu thập thông tin thiết bị ──────────────────────────────
@@ -92,12 +113,20 @@ function getDeviceInfo() {
 
 // ── Track visit ──────────────────────────────────────────────
 async function trackVisit() {
-    // Tránh đếm lại trong cùng session (30 phút)
-    const SESSION_KEY = 'gmy_session';
-    const last = sessionStorage.getItem(SESSION_KEY);
-    const now  = Date.now();
-    if (last && now - Number(last) < 30 * 60 * 1000) return;
-    sessionStorage.setItem(SESSION_KEY, now);
+    // Dùng localStorage (bền hơn sessionStorage trên mobile)
+    // Chỉ đếm 1 lần mỗi 30 phút, kể cả khi reload
+    const KEY = 'gmy_last_visit';
+    const now = Date.now();
+    try {
+        const last = localStorage.getItem(KEY);
+        if (last && now - Number(last) < 30 * 60 * 1000) return;
+        localStorage.setItem(KEY, now);
+    } catch(e) {
+        // localStorage bị block (private mode iOS) → dùng sessionStorage
+        const last = sessionStorage.getItem(KEY);
+        if (last && now - Number(last) < 30 * 60 * 1000) return;
+        sessionStorage.setItem(KEY, now);
+    }
 
     const [geo, dev] = await Promise.all([getGeoInfo(), Promise.resolve(getDeviceInfo())]);
     const record = {
